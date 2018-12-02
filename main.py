@@ -1,9 +1,8 @@
-CLAUSE_WIDTH=4
+from microbit import *
 
-# cls1 = [1, 1, 0, 0, 0] # A v B
-# cls2 = [1, -1, 0, 0, 0] # A v !B
-# cls3 = [-1, 0, 1, 0, 0] # -A v C
-# cls4 = [0, 0, 0, 0, 0] # %
+CLAUSE_WIDTH=4
+CLAUSE_COUNT=5
+FALSE_LIGHT=5
 
 cls1 = [1, 0, 1, 0] # %
 cls2 = [-1, 0, -1, -1] # %
@@ -11,9 +10,7 @@ cls3 = [-1, 1, 0, 0] # %
 cls4 = [1, 0, 1, 0] # %
 cls5 = [-1, -1, 0, -1] # %
 
-
 formula = [cls1, cls2, cls3, cls4, cls5]
-
 
 def findUnitClause(formula):
     for cls in range(len(formula)):
@@ -23,32 +20,18 @@ def findUnitClause(formula):
                     return (formula[cls], lit, formula[cls][lit])
     return (-1,0,0)
 
-# def handleUnitClause(formula, unitClause, partialModel):
-#     lit = -1
-#     val = -1
-#     for i in range(CLAUSE_WIDTH):
-#         if unitClause[i] == 1:
-#             lit = i
-#             val = 1
-#         elif unitClause[i] == -1:
-#             lit = i
-#             val = -1
-
-    
-#     partialModel[lit] = val
-    
-
-def findPureLiteral(formula):
+def findPureLiteral(formula, partialModel):
     for i in range(CLAUSE_WIDTH):
-        val = 0
-        for f in formula:
-            if (val == 0):
-                val = f[i]
-            elif (f[i] != 0 and f[i] != val):
-                val = -2
-        if (val != -2 and val != 0):
-            return (i, val)
-    return (-1, 0)
+        if (partialModel[i] == 0):
+            val = 0
+            for f in formula:
+                if (val == 0):
+                    val = f[i]
+                elif (f[i] != 0 and f[i] != val):
+                    val = -2
+            if (val != -2 and val != 0):
+                return (i, val)
+        return (-1, 0)
 
 def propagate(formula, partialModel):
     to_remove = []
@@ -83,14 +66,7 @@ def isContradicting(formula, partialModel):
         if satisfiable:
             contradiction = False
     return contradiction
-            
-def printModel(partialModel):
-    strs = ["A", "B", "C", "D"]
 
-    for i in range(4):
-        if (partialModel[i] != 0):
-            print("%s: %d" % (strs[i], partialModel[i]))    
-        
 def solve(formula):
     partialModel = {} # 1 is T, -1 is F, 0 is UNDEF
     # Extract variables
@@ -100,7 +76,6 @@ def solve(formula):
     decisions = []
     old_formulas = []
 
-    
     while True:
         change = False
         propagate(formula, partialModel)
@@ -129,15 +104,13 @@ def solve(formula):
         (cls, lit, val) = findUnitClause(formula)
         if (cls != -1):
             change = True
-            print("UnitClause: %d := %d" % (lit, val))
             partialModel[lit] = val
             formula.remove(cls)
             # handleUnitClause(formula, formula[unitCls], partialModel)
 
-        (lit, val) = findPureLiteral(formula)
+        (lit, val) = findPureLiteral(formula, partialModel)
         if (lit != -1):
             change = True
-            print("PureLiteral: %d := %d" % (lit, val))            
             partialModel[lit] = val
 
         if not change:
@@ -145,15 +118,101 @@ def solve(formula):
             
             old_formulas.append(formula.copy())
             decisions.append((decisionLit, 1))
-            print("Decision: %d := %d" % (decisionLit, 1))
-
             partialModel[decisionLit] = 1
 
-        # Check if we are done (i.e. all formulas are satisfied)
+def setSquare(coords, light):
+    for (x,y) in coords:
+        display.set_pixel(x, y, light)
 
-
-(result, model) = solve(formula)
-print(result)
-if (result == "SAT"):
-    printModel(model)
+def showModel(model):
+    if (model[0] == 1):
+        setSquare([(0,0), (0,1), (1,0), (1,1)], 9)
+    elif (model[0] == -1):
+        setSquare([(0,0), (0,1), (1,0), (1,1)], FALSE_LIGHT)
+        
+    if (model[1] == 1):
+        setSquare([(3,0), (3,1), (4,0), (4,1)], 9)
+    elif (model[1] == -1):
+        setSquare([(3,0), (3,1), (4,0), (4,1)], FALSE_LIGHT)        
+        
+    if (model[2] == 1):
+        setSquare([(0,3), (0,4), (1,3), (1,4)], 9)
+    elif (model[2] == -1):
+        setSquare([(0,3), (0,4), (1,3), (1,4)], FALSE_LIGHT)        
+        
+    if (model[3] == 1):        
+        setSquare([(3,3), (3,4), (4,3), (4,4)], 9)               
+    if (model[3] == -1):        
+        setSquare([(3,3), (3,4), (4,3), (4,4)], FALSE_LIGHT)
+        
+def solveFormula(formula):
+    (result, model) = solve(formula)
+    display.show(result)
+    if (result == "SAT"):
+        display.clear()
+        showModel(model)
+    while (not button_a.was_pressed() and not button_b.was_pressed()):
+        pass
     
+def displayFormula(form):
+    for i in range(CLAUSE_COUNT):      
+        for j in range(CLAUSE_WIDTH):
+            if (form[i][j] == 1):
+                display.set_pixel(j, i, 9)
+            elif (form[i][j] == -1):
+                display.set_pixel(j, i, 5)
+            else:
+                display.set_pixel(j, i, 0)
+
+def menu(formula):
+    posx = 0
+    posy = 0
+    light = 0
+    lightdir = 1
+    while True:
+        sleep(200)    
+        ba = button_a.was_pressed()
+        bb = button_b.was_pressed()
+        
+        if ba and bb:
+            if (posx < CLAUSE_WIDTH):
+                if (formula[posy][posx] == 0):
+                    formula[posy][posx] = 1
+                elif (formula[posy][posx] == 1):
+                    formula[posy][posx] = -1
+                else:
+                    formula[posy][posx] = 0
+                
+                ba = False
+                bb = False
+            elif posy == 0:
+                for i in range(CLAUSE_COUNT):
+                    for j in range(CLAUSE_WIDTH):
+                        formula[i][j] = 0
+            elif (posy == 4):
+                return formula
+        
+        if ba:
+            posx = (1 + posx) % 5
+        if bb:
+            posy = (1 + posy) % 5
+        
+        light = light+lightdir
+        if light == 9:
+            lightdir = -1
+        elif light == 0:
+            lightdir = 1
+
+        display.clear()
+        displayFormula(formula)    
+        display.set_pixel(posx, posy, light)
+        
+while True:
+    display.clear()
+    menu(formula)
+    original_formula = formula.copy()
+    solveFormula(formula)
+    formula = original_formula.copy()
+
+
+

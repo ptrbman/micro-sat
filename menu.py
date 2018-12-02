@@ -49,6 +49,7 @@ while True:
             ba = False
             bb = False
         else:
+            solve(formula)
             display.scroll("SAT SOLVING")
     
     if ba:
