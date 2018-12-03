@@ -4,13 +4,19 @@ CLAUSE_WIDTH=4
 CLAUSE_COUNT=5
 FALSE_LIGHT=5
 
-cls1 = [1, 0, 1, 0] # %
-cls2 = [-1, 0, -1, -1] # %
-cls3 = [-1, 1, 0, 0] # %
-cls4 = [1, 0, 1, 0] # %
-cls5 = [-1, -1, 0, -1] # %
+cls1 = [1, 0, 0, 0] # %
+cls2 = [1, 0, 0, 0] # %
+cls3 = [-1, 0, 0, 0] # %
+cls4 = [1, 0, 0, 0] # %
+cls5 = [1, 0, 0, 0] # %
+ocls1 = [1, 0, 0, 0] # %
+ocls2 = [1, 0, 0, 0] # %
+ocls3 = [-1, 0, 0, 0] # %
+ocls4 = [1, 0, 0, 0] # %
+ocls5 = [1, 0, 0, 0] # %
 
 formula = [cls1, cls2, cls3, cls4, cls5]
+oformula = [ocls1, ocls2, ocls3, ocls4, ocls5]
 
 
 
@@ -49,8 +55,7 @@ def isContradicting(formula, partialModel):
     return contradiction
 
 def solve(formula):
-    partialModel = {} # 1 is T, -1 is F, 0 is UNDEF
-    # Extract variables
+    partialModel = {}
     for lit in range(CLAUSE_WIDTH):
         partialModel[lit] = 0
 
@@ -79,16 +84,14 @@ def solve(formula):
                     newDecision = True
                     change = True
         
-        toRemove = []
+        
         for cls in range(len(formula)):
             if formula[cls].count(0) == (CLAUSE_WIDTH-1):
                 for lit in range(CLAUSE_WIDTH):
                     if formula[cls][lit] != 0 and partialModel[lit] == 0:
                         change = True
-                        partialModel[lit] = val
+                        partialModel[lit] = formula[cls][lit]
                         toRemove.append(formula[cls])
-        for cls in toRemove:
-            formula.remove(cls)
 
         for i in range(CLAUSE_WIDTH):
             if (partialModel[i] == 0):
@@ -181,9 +184,12 @@ def menu(formula):
 while True:
     display.clear()
     menu(formula)
-    original_formula = formula.copy()
+    for i in range(CLAUSE_COUNT):
+        oformula[i] = formula[i].copy()
     solveFormula(formula)
-    formula = original_formula.copy()
+    formula = []
+    for i in range(CLAUSE_COUNT):
+        formula.append(oformula[i].copy())
 
 
 
