@@ -12,26 +12,7 @@ cls5 = [-1, -1, 0, -1] # %
 
 formula = [cls1, cls2, cls3, cls4, cls5]
 
-def findUnitClause(formula):
-    for cls in range(len(formula)):
-        if formula[cls].count(0) == (CLAUSE_WIDTH-1):
-            for lit in range(CLAUSE_WIDTH):
-                if formula[cls][lit] != 0:
-                    return (formula[cls], lit, formula[cls][lit])
-    return (-1,0,0)
 
-def findPureLiteral(formula, partialModel):
-    for i in range(CLAUSE_WIDTH):
-        if (partialModel[i] == 0):
-            val = 0
-            for f in formula:
-                if (val == 0):
-                    val = f[i]
-                elif (f[i] != 0 and f[i] != val):
-                    val = -2
-            if (val != -2 and val != 0):
-                return (i, val)
-        return (-1, 0)
 
 def propagate(formula, partialModel):
     to_remove = []
@@ -94,63 +75,53 @@ def solve(formula):
                 if (dVal == 1):
                     old_formulas.append(formula.copy())
                     decisions.append((decisionLit, -1))
-                    print("Decision: %d := %d" % (decisionLit, -1))
                     partialModel[decisionLit] = -1
                     newDecision = True
                     change = True
-
-
         
-        (cls, lit, val) = findUnitClause(formula)
-        if (cls != -1):
-            change = True
-            partialModel[lit] = val
+        toRemove = []
+        for cls in range(len(formula)):
+            if formula[cls].count(0) == (CLAUSE_WIDTH-1):
+                for lit in range(CLAUSE_WIDTH):
+                    if formula[cls][lit] != 0 and partialModel[lit] == 0:
+                        change = True
+                        partialModel[lit] = val
+                        toRemove.append(formula[cls])
+        for cls in toRemove:
             formula.remove(cls)
-            # handleUnitClause(formula, formula[unitCls], partialModel)
 
-        (lit, val) = findPureLiteral(formula, partialModel)
-        if (lit != -1):
-            change = True
-            partialModel[lit] = val
+        for i in range(CLAUSE_WIDTH):
+            if (partialModel[i] == 0):
+                val = 0
+                for f in formula:
+                    if (val == 0):
+                        val = f[i]
+                    elif (f[i] != 0 and f[i] != val):
+                        val = -2
+                if (val != -2 and val != 0 and partialModel[i] == 0):
+                    change = True
+                    partialModel[i] = val
 
         if not change:
             decisionLit = firstUnassigned(partialModel)
-            
             old_formulas.append(formula.copy())
             decisions.append((decisionLit, 1))
             partialModel[decisionLit] = 1
 
-def setSquare(coords, light):
+def setSquare(coords, val):
+    lights = [FALSE_LIGHT, 0, 9]
     for (x,y) in coords:
-        display.set_pixel(x, y, light)
-
-def showModel(model):
-    if (model[0] == 1):
-        setSquare([(0,0), (0,1), (1,0), (1,1)], 9)
-    elif (model[0] == -1):
-        setSquare([(0,0), (0,1), (1,0), (1,1)], FALSE_LIGHT)
-        
-    if (model[1] == 1):
-        setSquare([(3,0), (3,1), (4,0), (4,1)], 9)
-    elif (model[1] == -1):
-        setSquare([(3,0), (3,1), (4,0), (4,1)], FALSE_LIGHT)        
-        
-    if (model[2] == 1):
-        setSquare([(0,3), (0,4), (1,3), (1,4)], 9)
-    elif (model[2] == -1):
-        setSquare([(0,3), (0,4), (1,3), (1,4)], FALSE_LIGHT)        
-        
-    if (model[3] == 1):        
-        setSquare([(3,3), (3,4), (4,3), (4,4)], 9)               
-    if (model[3] == -1):        
-        setSquare([(3,3), (3,4), (4,3), (4,4)], FALSE_LIGHT)
+        display.set_pixel(x, y, lights[val+1])
         
 def solveFormula(formula):
     (result, model) = solve(formula)
     display.show(result)
     if (result == "SAT"):
         display.clear()
-        showModel(model)
+        setSquare([(0,0), (0,1), (1,0), (1,1)], model[0])
+        setSquare([(3,0), (3,1), (4,0), (4,1)], model[1])
+        setSquare([(0,3), (0,4), (1,3), (1,4)], model[2])   
+        setSquare([(3,3), (3,4), (4,3), (4,4)], model[3])
     while (not button_a.was_pressed() and not button_b.was_pressed()):
         pass
     
