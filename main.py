@@ -2,21 +2,14 @@ from microbit import *
 
 CLAUSE_WIDTH=4
 CLAUSE_COUNT=5
-FALSE_LIGHT=5
+FALSE_LIGHT=6
 
-cls1 = [1, 0, 0, 0] # %
-cls2 = [1, 0, 0, 0] # %
-cls3 = [-1, 0, 0, 0] # %
-cls4 = [1, 0, 0, 0] # %
-cls5 = [1, 0, 0, 0] # %
-ocls1 = [1, 0, 0, 0] # %
-ocls2 = [1, 0, 0, 0] # %
-ocls3 = [-1, 0, 0, 0] # %
-ocls4 = [1, 0, 0, 0] # %
-ocls5 = [1, 0, 0, 0] # %
-
+cls1 = [0, 0, 0, 0] # %
+cls2 = [0, 0, 0, 0] # %
+cls3 = [0, 0, 0, 0] # %
+cls4 = [0, 0, 0, 0] # %
+cls5 = [0, 0, 0, 0] # %
 formula = [cls1, cls2, cls3, cls4, cls5]
-oformula = [ocls1, ocls2, ocls3, ocls4, ocls5]
 
 
 
@@ -91,7 +84,6 @@ def solve(formula):
                     if formula[cls][lit] != 0 and partialModel[lit] == 0:
                         change = True
                         partialModel[lit] = formula[cls][lit]
-                        toRemove.append(formula[cls])
 
         for i in range(CLAUSE_WIDTH):
             if (partialModel[i] == 0):
@@ -118,13 +110,14 @@ def setSquare(coords, val):
         
 def solveFormula(formula):
     (result, model) = solve(formula)
-    display.show(result)
     if (result == "SAT"):
         display.clear()
         setSquare([(0,0), (0,1), (1,0), (1,1)], model[0])
         setSquare([(3,0), (3,1), (4,0), (4,1)], model[1])
         setSquare([(0,3), (0,4), (1,3), (1,4)], model[2])   
         setSquare([(3,3), (3,4), (4,3), (4,4)], model[3])
+    else:
+        display.show(Image.NO)
     while (not button_a.was_pressed() and not button_b.was_pressed()):
         pass
     
@@ -178,18 +171,34 @@ def menu(formula):
             lightdir = 1
 
         display.clear()
-        displayFormula(formula)    
+        displayFormula(formula)
+        display.set_pixel(4, 0, 1)
+        display.set_pixel(4, 4, 1)
         display.set_pixel(posx, posy, light)
-        
+
+
+for i in range(9, 0, -1):
+    display.set_pixel(0,0,i)
+    display.set_pixel(0,1,i)
+    display.set_pixel(0,2,i)
+    display.set_pixel(0,3,i)
+    display.set_pixel(0,4,i)
+    display.set_pixel(1,3,i)
+    display.set_pixel(2,3,i)
+    display.set_pixel(3,3,i)
+    display.set_pixel(3,2,i)
+    display.set_pixel(3,1,i)
+    display.set_pixel(3,0,i)
+    
+    sleep(50)
 while True:
     display.clear()
     menu(formula)
+    actualFormula = []
     for i in range(CLAUSE_COUNT):
-        oformula[i] = formula[i].copy()
-    solveFormula(formula)
-    formula = []
-    for i in range(CLAUSE_COUNT):
-        formula.append(oformula[i].copy())
+        if (formula[i].count(0) < CLAUSE_WIDTH):
+            actualFormula.append(formula[i].copy())
+    solveFormula(actualFormula)
 
 
 
